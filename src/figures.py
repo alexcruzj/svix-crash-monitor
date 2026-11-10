@@ -38,6 +38,16 @@ MULTIPLIER = 50  # dollars per index point, for an E-mini future and its options
 MONTH_CODES = dict(F=1, G=2, H=3, J=4, K=5, M=6, N=7, Q=8, U=9, V=10, X=11, Z=12)
 
 
+def long_date(when, fmt="%B %-d, %Y"):
+    """Format a date with ``%-d`` (day without a leading zero) on any OS.
+
+    ``%-d`` is a glibc extension: it works on Linux and macOS but raises
+    ``ValueError`` on Windows. Substitute the day before calling strftime.
+    """
+    when = pd.Timestamp(when)
+    return when.strftime(fmt.replace("%-d", str(when.day)))
+
+
 def style(fig, height=480, **layout):
     """The house style; any layout key passed in overrides the default."""
     defaults = dict(template="plotly_white", height=height, font=FONT, margin=dict(l=60, r=20, t=60, b=40))
@@ -120,7 +130,7 @@ def fig_futures_curve(curve, on, underlyings=()):
     fig.update_layout(xaxis_title="Expiration (third Friday of the contract month)",
                       yaxis_title="Price above the nearest contract (%)",
                       legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0))
-    return style(fig, height=440, title=_title(f"The E-mini S&P 500 futures curve, settlements of {pd.Timestamp(on):%B %-d, %Y}"),
+    return style(fig, height=440, title=_title(f"The E-mini S&P 500 futures curve, settlements of {long_date(on)}"),
                  margin=dict(l=70, r=20, t=90, b=50))
 
 
@@ -155,7 +165,7 @@ def fig_expiration_calendar(session, curve, on, horizon_days=smile.HORIZON_DAYS)
     fig.update_layout(yaxis=dict(title="Underlying future", categoryorder="array", categoryarray=order),
                       xaxis_title="Expiration date",
                       legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0))
-    return style(fig, height=380, title=_title(f"What expires when, as of {on:%B %-d, %Y}"),
+    return style(fig, height=380, title=_title(f"What expires when, as of {long_date(on)}"),
                  margin=dict(l=90, r=20, t=90, b=50))
 
 
@@ -187,7 +197,7 @@ def fig_parity(chain, forward, rate):
                       yaxis_title="Call minus put (index points)",
                       legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0))
     expiry = pd.Timestamp(chain["expiration"].iloc[0])
-    return style(fig, height=460, title=_title(f"Put-call parity, options expiring {expiry:%B %-d, %Y} ({days} days)"),
+    return style(fig, height=460, title=_title(f"Put-call parity, options expiring {long_date(expiry)} ({days} days)"),
                  margin=dict(l=70, r=20, t=90, b=50))
 
 
@@ -318,7 +328,7 @@ def fig_surface(options, session, date, rate):
         xaxis_title="Strike / index level", yaxis_title="Days to expiration", zaxis_title="Implied vol (%)",
         camera=dict(eye=dict(x=1.6, y=-1.6, z=0.9)), aspectratio=dict(x=1.2, y=1.2, z=0.7),
     )
-    return style(fig, height=600, title=f"The E-mini S&P 500 volatility surface, settlements of {pd.Timestamp(date):%B %-d, %Y}")
+    return style(fig, height=600, title=f"The E-mini S&P 500 volatility surface, settlements of {long_date(date)}")
 
 
 # --------------------------------------------------------------------------
@@ -369,7 +379,7 @@ def fig_distribution(options, session, date, rate, n_expiries=5):
     for i, row in enumerate(expiries.itertuples()):
         mask = [False] * n
         mask[i * traces_per:(i + 1) * traces_per] = [True] * traces_per
-        buttons.append(dict(label=f"{int(row.days_to_expiry)} days ({row.expiration:%b %-d})",
+        buttons.append(dict(label=f"{int(row.days_to_expiry)} days ({long_date(row.expiration, '%b %-d')})",
                             method="update", args=[{"visible": mask}]))
     for r in (1, 2, 3):
         fig.add_vline(x=0.8, line_dash="dot", line_color=GREY, row=r, col=1)
@@ -405,7 +415,7 @@ def fig_svix_weights(cdf, date):
                       xaxis_title="Strike / index level",
                       yaxis_title="Share of the total, per 1% band of strikes (%)")
     days = int(round(tau * 365))
-    return style(fig, height=500, title=_title(f"Where SVIX comes from: {days}-day E-mini options, {pd.Timestamp(date):%B %-d, %Y}"),
+    return style(fig, height=500, title=_title(f"Where SVIX comes from: {days}-day E-mini options, {long_date(date)}"),
                  margin=dict(l=60, r=20, t=90, b=50))
 
 
@@ -440,7 +450,7 @@ def fig_crash_beliefs(cdf, date, gammas=(1, 2, 3, 4, 5)):
         legend=dict(orientation="h", y=1.02, yanchor="bottom", x=0),
     )
     days = int(round(cdf.maturity_years * 365))
-    return style(fig, height=560, title=_title(f"Three beliefs about a crash, {days}-day options, {pd.Timestamp(date):%B %-d, %Y}"),
+    return style(fig, height=560, title=_title(f"Three beliefs about a crash, {days}-day options, {long_date(date)}"),
                  margin=dict(l=70, r=20, t=90, b=110))
 
 
